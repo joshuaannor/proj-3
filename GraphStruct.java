@@ -1,83 +1,134 @@
-import java.util.*;
-
 public class GraphStruct {
-    private Map<String, List<String>> adjacencyList;
+    private static class Node {
+        Handle handle;
+        Node next;
 
-    public GraphStruct() {
-        adjacencyList = new HashMap<>();
-    }
-
-    public void addNode(String node) {
-        if (!adjacencyList.containsKey(node)) {
-            adjacencyList.put(node, new ArrayList<>());
+        Node(Handle handle) {
+            this.handle = handle;
+            this.next = null;
         }
     }
 
-    public void addEdge(String source, String destination) {
+    private Node[] adjacencyList;
+
+    public GraphStruct() {
+        this.adjacencyList = new Node[100]; // Set initial size as per your requirement
+    }
+
+    public void addNode(Handle handle) {
+        int index = getIndex(handle.getKey());
+        Node newNode = new Node(handle);
+
+        if (adjacencyList[index] == null) {
+            adjacencyList[index] = newNode;
+        } else {
+            Node current = adjacencyList[index];
+            while (current.next != null) {
+                current = current.next;
+            }
+            current.next = newNode;
+        }
+    }
+
+    public void addEdge(Handle source, Handle destination) {
+        int sourceIndex = getIndex(source.getKey());
+        int destinationIndex = getIndex(destination.getKey());
+
         addNode(source);
         addNode(destination);
 
-        List<String> neighbors = adjacencyList.get(source);
-        if (!neighbors.contains(destination)) {
-            neighbors.add(destination);
+        Node sourceNode = adjacencyList[sourceIndex];
+        Node destinationNode = adjacencyList[destinationIndex];
+
+        if (!hasNeighbor(sourceNode, destination)) {
+            Node newNeighbor = new Node(destination);
+            Node current = sourceNode;
+            while (current.next != null) {
+                current = current.next;
+            }
+            current.next = newNeighbor;
         }
     }
 
-    public boolean hasNode(String node) {
-        return adjacencyList.containsKey(node);
-    }
+    public boolean hasNode(Handle handle) {
+        int index = getIndex(handle.getKey());
+        Node current = adjacencyList[index];
 
-    public boolean hasEdge(String source, String destination) {
-        if (hasNode(source)) {
-            List<String> neighbors = adjacencyList.get(source);
-            return neighbors.contains(destination);
+        while (current != null) {
+            if (current.handle.equals(handle)) {
+                return true;
+            }
+            current = current.next;
         }
+
         return false;
     }
 
-    public List<String> getNeighbors(String node) {
-        return adjacencyList.getOrDefault(node, Collections.emptyList());
+    public boolean hasEdge(Handle source, Handle destination) {
+        int sourceIndex = getIndex(source.getKey());
+        Node sourceNode = adjacencyList[sourceIndex];
+
+        return hasNeighbor(sourceNode, destination);
     }
 
-    public int getNumNodes() {
-        return adjacencyList.size();
-    }
+    private boolean hasNeighbor(Node node, Handle neighbor) {
+        Node current = node;
 
-    public int getNumEdges() {
-        int count = 0;
-        for (List<String> neighbors : adjacencyList.values()) {
-            count += neighbors.size();
-        }
-        return count;
-    }
-    
-    public void removeNode(String node) {
-        if (hasNode(node)) {
-            adjacencyList.remove(node);
-            
-            // Remove all edges connected to the node
-            for (List<String> neighbors : adjacencyList.values()) {
-                neighbors.remove(node);
+        while (current != null) {
+            if (current.handle.equals(neighbor)) {
+                return true;
             }
+            current = current.next;
         }
+
+        return false;
     }
-    
-    public void removeEdge(String source, String destination) {
-        if (hasNode(source)) {
-            List<String> neighbors = adjacencyList.get(source);
-            neighbors.remove(destination);
+
+    public void removeNode(Handle handle) {
+        int index = getIndex(handle.getKey());
+        adjacencyList[index] = null;
+    }
+
+    public void removeEdge(Handle source, Handle destination) {
+        int sourceIndex = getIndex(source.getKey());
+        Node sourceNode = adjacencyList[sourceIndex];
+
+        if (sourceNode == null) {
+            return;
         }
+
+        Node current = sourceNode;
+        Node prev = null;
+
+        while (current != null) {
+            if (current.handle.equals(destination)) {
+                if (prev == null) {
+                    sourceNode = current.next;
+                } else {
+                    prev.next = current.next;
+                }
+                break;
+            }
+            prev = current;
+            current = current.next;
+        }
+
+        adjacencyList[sourceIndex] = sourceNode;
     }
-    
+
     public void printGraph() {
-        for (Map.Entry<String, List<String>> entry : adjacencyList.entrySet()) {
-            String node = entry.getKey();
-            List<String> neighbors = entry.getValue();
-            System.out.print(node + " -> ");
-            for (String neighbor : neighbors) {
-                System.out.print(neighbor + " ");
+        for (Node node : adjacencyList) {
+            Node current = node;
+            while (current != null) {
+                System.out.print(current.handle.getKey() + " ");
+                current = current.next;
             }
             System.out.println();
         }
+    }
+
+    private int getIndex(String key) {
+        int hash = key.hashCode();
+        return Math.abs(hash) % adjacencyList.length;
     }
 }
